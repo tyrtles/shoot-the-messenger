@@ -1,30 +1,28 @@
 (function () {
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (!('action' in request)) {
-      console.log('No action found in contentHandler.');
-      return;
-    }
-    console.log('Got request: ', request);
+  // Function to send message to the active tab
+  function sendMessageToActiveTab(message) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs.length > 0) {
+        chrome.tabs.sendMessage(tabs[0].id, { tabId: tabs[0].id, ...message });
+      } else {
+        console.error('No active tab found.');
+      }
+    });
+  }
 
-    if (request.action === 'REMOVE') {
-      // Begin removing message information.
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.tabs.sendMessage(tabs[0].id, { tabId: tabs[0].id, ...request });
-      });
-    } else if (request.action === 'STOP') {
-      // We can stop by just triggering a reload.
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.tabs.sendMessage(tabs[0].id, {
-          tabId: tabs[0].id,
-          action: 'STOP',
-        });
-      });
-    } else if (request.action === 'UPDATE_DELAY') {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.tabs.sendMessage(tabs[0].id, { tabId: tabs[0].id, ...request });
-      });
-    } else {
-      console.log('Unknown action requested: ', request.action);
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('Got request: ', request);
+    
+    // Handle different actions
+    switch (request.action) {
+      case 'REMOVE':
+      case 'UPDATE_DELAY':
+      case 'STOP':
+        sendMessageToActiveTab(request);
+        break;
+      default:
+        console.error('Unknown action requested: ', request.action);
+        break;
     }
   });
 })();
